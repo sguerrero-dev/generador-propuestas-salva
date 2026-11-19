@@ -60,7 +60,7 @@ button:disabled{opacity:.55;cursor:wait}
 .slide .mk{position:absolute;right:20px;top:18px;width:42px}
 .slide .sub{position:absolute;left:42px;top:76px;margin:0;font-size:17px}
 .foot-band{position:absolute;left:0;bottom:0;width:100%;height:44px;background:#31674A}.foot-band.r{left:auto;right:0;width:100%;height:30px}
-.s2{display:flex}.s2-l{position:relative;width:672px;background:#28533C;overflow:hidden}.s2-l .lines{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.85;mix-blend-mode:screen}
+.s2{display:flex}.s2-l{position:relative;width:672px;background:#28533C;overflow:hidden}.s2-l .lines{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.22}
 .s2-l{background:linear-gradient(135deg,#2f6347,#244d37)}.s2-t{position:absolute;left:52px;top:310px;color:#fff}.s2-t h1{font-weight:500;font-size:36px;letter-spacing:6px;line-height:1.05}.s2-t p{margin:18px 0 0 14px;font-style:italic;font-size:11px;opacity:.85}
 .s2-r{flex:1;background:#F2F2F2;display:flex;flex-direction:column;align-items:center;justify-content:space-around;padding:14px 10px 40px;text-align:center}.s2-r img{width:140px}.s2-r b{font:800 20px/1.2 Georgia,"Times New Roman",serif;color:#0f3325;letter-spacing:.5px}
 .s3-tot{position:absolute;left:0;right:0;top:440px;text-align:center;font-size:16px;margin:0;text-transform:uppercase}
@@ -249,7 +249,10 @@ async function makePdf(kind) {
   return pdf.output('blob');
 }
 async function download(kind, btn) {
-  const msg = $('msg'); btn.disabled = true;
+  const msg = $('msg');
+  const falta = (kind === 'deck' ? ['cliente','proyecto','ciudad'] : ['cliente','proyecto','ciudad','numero','para','nit','saludo']).filter(k => !$(k).value.trim());
+  if (falta.length) { msg.textContent = 'Completa antes de descargar: ' + falta.map(k => $(k).closest('label').firstChild.textContent.trim()).join(', ') + '.'; $(falta[0]).focus(); return; }
+  btn.disabled = true;
   try {
     const f = form();
     const name = kind === 'deck' ? `Analisis_Conceptual_Sistema_Solar_${slug(f.cliente)}.pdf` : `Cotizacion_${slug(f.numero)}_${slug(f.cliente)}.pdf`;
