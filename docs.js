@@ -3,6 +3,7 @@
   const C = { green: '#31674A', deep: '#285340', dark: '#166748', lime: '#DDE69D', limeSoft: '#EEF3C9', navy: '#15172C', gold: '#E2C044', grey: '#F2F2F2', ink: '#1d2420' };
   const nf0 = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
   const nf1 = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const nf3 = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
   const nf2 = new Intl.NumberFormat('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const $m = x => '$ ' + nf0.format(Math.round(x));
   const $q = x => nf2.format(x);
@@ -109,9 +110,9 @@
     const mk = (name, cfg) => { const cv = scope.querySelector(`canvas[data-chart="${name}"]`); if (!cv) return; cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, devicePixelRatio: 3, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, boxHeight: 8, font } } } }, cfg.options || {}); made.push(new Chart(cv, cfg)); };
     mk('trad', {
       data: { labels: d.trad.months, datasets: [
-        { type: 'line', label: 'Consumo actual (kWh-mes)', data: d.trad.cons, borderColor: C.dark, borderWidth: 2, pointRadius: 0, yAxisID: 'y2' },
-        { type: 'bar', label: 'Costo energía (miles de $)', data: d.trad.cost, backgroundColor: '#E3EDA6', borderColor: '#C9D77A', borderWidth: 1, yAxisID: 'y' }] },
-      options: { scales: { y: { beginAtZero: true, grid, ticks: { callback: v => '$ ' + nf0.format(v) } }, y2: { position: 'right', beginAtZero: true, grid: { display: false }, ticks: { callback: v => nf0.format(v) + ' kWh' } }, x: { grid: { display: false } } } },
+        { type: 'line', label: 'Consumo actual', data: d.trad.cons, borderColor: C.dark, borderWidth: 2, pointRadius: 0 },
+        { type: 'bar', label: 'Costo energía', data: d.trad.cost, backgroundColor: '#E3EDA6', borderColor: '#C9D77A', borderWidth: 1 }] },
+      options: { scales: { y: { beginAtZero: true, grid, ticks: { callback: v => '$ ' + nf0.format(v) } }, x: { grid: { display: false } } } },
       plugins: [labelPlugin(v => '$ ' + nf0.format(v), [1])]
     });
     mk('hourly', {
@@ -127,8 +128,8 @@
         { type: 'bar', label: 'Factura actual', data: b.actual, backgroundColor: C.green },
         { type: 'bar', label: 'Costo ESFV (O&M)', data: b.esfv, backgroundColor: '#D3E08A' },
         { type: 'bar', label: 'Factura futura', data: b.futura, backgroundColor: C.navy }] },
-      options: { scales: { y: { beginAtZero: true, grid, ticks: { callback: v => nf2.format(v) } }, x: { grid: { display: false } } } },
-      plugins: [labelPlugin(v => nf2.format(v), [1], { size: 8 })]
+      options: { scales: { y: { beginAtZero: true, grid, ticks: { callback: v => nf3.format(v) } }, x: { grid: { display: false } } } },
+      plugins: [labelPlugin(v => nf3.format(v), [1], { size: 7.5 })]
     });
     mk('flow', {
       type: 'bar', data: { labels: d.ind.flowYears, datasets: [{ label: 'Flujo acumulado', data: d.ind.flowVals.map(v => Math.round(v * 10) / 10), backgroundColor: d.ind.flowVals.map(v => v < 0 ? '#8C9A8F' : '#3C8253') }] },

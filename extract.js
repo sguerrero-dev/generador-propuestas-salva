@@ -76,7 +76,7 @@
     const flowYears = cols('G', 'Y').map(c => v(C, c + '49')).filter(x => x != null);
     const flowVals = cols('G', 'Y').slice(0, flowYears.length).map(c => num(C, c + '52'));
     const net = cols('H', 'Q').map(c => num(C, c + '50'));
-    const om = cols('D', 'H').map(c => num('A O&M', c + '3'));
+    const om = cols('C', 'G').map(c => num('A O&M', c + '3')); // 5 años desde el año de instalación (como el original)
     const P = 'Prestamo 5 años';
 
     // --- Cotización (SIGO + Capex)
@@ -115,7 +115,7 @@
       trad: { months: costMonths, cost: costVals, cons: consVals, lastYear: costVals.slice(0, 12).reduce((a, b) => a + b, 0) * 1000 },
       hourly, bill, plant, pays,
       ind: {
-        omYear: om[0], om5: om.reduce((a, b) => a + b, 0),
+        omYear: om[1], om5: om.reduce((a, b) => a + b, 0),
         saveYear: net[0], save10: net.reduce((a, b) => a + b, 0),
         payback: num(C, 'B61'),
         cur5: num(C, 'B64'), cur20: num(C, 'D64'),
