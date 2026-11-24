@@ -2,7 +2,7 @@
 
 Herramienta web que toma el Excel de preventa (plantilla de análisis económico) y genera en el navegador:
 
-- **Presentación** "Análisis conceptual" (PDF 16:9, 14 diapositivas con gráficas)
+- **Presentación** "Análisis conceptual" (PDF o PowerPoint 16:9, 14 diapositivas con gráficas)
 - **Cotización** (PDF A4, 3 páginas)
 
 El Excel se procesa localmente en el navegador; no se sube a ningún servidor.
@@ -19,5 +19,5 @@ Lee posiciones fijas de las hojas `SIGO`, `Capital propio`, `Liquidación`, `Res
 - `index.html` — interfaz
 - `extract.js` — lectura del Excel (mapa de celdas)
 - `docs.js` — diapositivas y cotización
-- `lib/` — SheetJS, Chart.js, html2canvas, jsPDF
+- `lib/` — SheetJS, Chart.js, html2canvas, jsPDF, PptxGenJS
 - `img/` — logos y diapositivas fijas

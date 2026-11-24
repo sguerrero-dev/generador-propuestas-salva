@@ -35,7 +35,7 @@ input:focus-visible,select:focus-visible,button:focus-visible,.drop:focus-visibl
 .chk{flex-direction:row;align-items:center;gap:8px;grid-column:1/-1;color:var(--ink)}.chk input{width:20px;min-height:20px}
 .btns{display:grid;gap:8px}
 button{font:700 15px Montserrat,sans-serif;min-height:46px;border-radius:8px;border:0;cursor:pointer;padding:10px 14px}
-.b1{background:var(--g);color:#fff}.b2{background:var(--navy);color:#fff}.b3{background:transparent;color:var(--ink);border:1px solid var(--line);font-size:13px;min-height:40px}
+.b1{background:var(--g);color:#fff}.b4{background:#C55A11;color:#fff}.b2{background:var(--navy);color:#fff}.b3{background:transparent;color:var(--ink);border:1px solid var(--line);font-size:13px;min-height:40px}
 button:disabled{opacity:.55;cursor:wait}
 .msg{font-size:13px;color:var(--mut);min-height:1.2em}.msg a{color:inherit}
 .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}.tabs button{background:var(--panel);color:var(--ink);border:1px solid var(--line);font-size:14px;min-height:40px}.tabs button[aria-selected=true]{background:var(--g);color:#fff;border-color:var(--g)}
@@ -123,7 +123,7 @@ ul.two{columns:2;column-gap:30px}
 </style>
 </head>
 <body>
-<header><img src="img/wm_lime.png" alt="Salva Energy"><div><h1>Generador de propuestas solares</h1><p>Sube el Excel de análisis económico y obtén la presentación y la cotización listas en PDF</p></div></header>
+<header><img src="img/wm_lime.png" alt="Salva Energy"><div><h1>Generador de propuestas solares</h1><p>Sube el Excel de análisis económico y obtén la presentación (PDF o PowerPoint) y la cotización en PDF</p></div></header>
 <div class="app">
 <aside>
   <div class="card">
@@ -159,6 +159,7 @@ ul.two{columns:2;column-gap:30px}
   <div class="card btns">
     <h2 class="t">3. Descargar</h2>
     <button class="b1" id="dlDeck">Presentación (PDF)</button>
+    <button class="b4" id="dlPptx">Presentación (PowerPoint)</button>
     <button class="b2" id="dlQuote">Cotización (PDF)</button>
     <div class="msg" id="msg" aria-live="polite"></div>
   </div>
@@ -175,6 +176,7 @@ ul.two{columns:2;column-gap:30px}
 <script src="lib/chart.umd.js"></script>
 <script src="lib/html2canvas.min.js"></script>
 <script src="lib/jspdf.umd.min.js"></script>
+<script src="lib/pptxgen.bundle.js"></script>
 <script src="extract.js"></script>
 <script src="docs.js"></script>
 <script>
@@ -188,7 +190,7 @@ const fit = () => document.querySelectorAll('.sw,.pw').forEach(w => { const c = 
 const ro = new ResizeObserver(fit);
 function render() {
   live.forEach(c => c.destroy()); live = [];
-  $('dlDeck').disabled = $('dlQuote').disabled = !data;
+  $('dlDeck').disabled = $('dlPptx').disabled = $('dlQuote').disabled = !data;
   if (!data) { $('deck').innerHTML = $('quote').innerHTML = '<div class="card empty"><b>Aún no hay Excel cargado</b><p>Arrastra el archivo de análisis económico en el paso 1 y aquí aparecerán la presentación y la cotización.</p></div>'; $('vnote').textContent = ''; return; }
   const f = form(), deck = $('deck'), quote = $('quote');
   deck.replaceChildren(...wrap(SalvaDocs.slides(data, f), 'sw'));
@@ -230,33 +232,47 @@ $('f').addEventListener('submit', e => e.preventDefault());
 document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-selected', x === b)); $('deck').hidden = b.dataset.v !== 'deck'; $('quote').hidden = b.dataset.v !== 'quote'; fit(); });
 
 const slug = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w]+/g, '_').replace(/^_|_$/g, '');
-async function makePdf(kind) {
-  const f = form(), stage = $('stage'), { jsPDF } = window.jspdf;
-  stage.innerHTML = kind === 'deck' ? SalvaDocs.slides(data, f) : SalvaDocs.quote(data, f);
-  const ch = kind === 'deck' ? SalvaDocs.charts(data, Chart, stage) : [];
+async function renderImages(kind) {
+  const f = form(), stage = $('stage');
+  stage.innerHTML = kind === 'quote' ? SalvaDocs.quote(data, f) : SalvaDocs.slides(data, f);
+  const ch = kind === 'quote' ? [] : SalvaDocs.charts(data, Chart, stage);
   await document.fonts.ready;
   await Promise.all([...stage.querySelectorAll('img')].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; })));
-  const els = [...stage.children];
+  const els = [...stage.children], out = [];
+  try {
+    for (let i = 0; i < els.length; i++) {
+      $('msg').textContent = `Generando página ${i + 1} de ${els.length}…`;
+      const cv = await html2canvas(els[i], { scale: kind === 'quote' ? 2.4 : 2, backgroundColor: '#ffffff', logging: false });
+      out.push(cv.toDataURL('image/jpeg', 0.9));
+    }
+  } finally { ch.forEach(c => c.destroy()); stage.innerHTML = ''; }
+  return out;
+}
+async function makePdf(kind) {
+  const { jsPDF } = window.jspdf, imgs = await renderImages(kind);
   const pdf = kind === 'deck' ? new jsPDF({ orientation: 'landscape', unit: 'pt', format: [720, 405] }) : new jsPDF({ unit: 'mm', format: 'a4' });
-  for (let i = 0; i < els.length; i++) {
-    $('msg').textContent = `Generando página ${i + 1} de ${els.length}…`;
-    const cv = await html2canvas(els[i], { scale: kind === 'deck' ? 2 : 2.4, backgroundColor: '#ffffff', logging: false });
-    if (i) pdf.addPage();
-    const img = cv.toDataURL('image/jpeg', 0.9);
-    kind === 'deck' ? pdf.addImage(img, 'JPEG', 0, 0, 720, 405) : pdf.addImage(img, 'JPEG', 0, 0, 210, 297);
-  }
-  ch.forEach(c => c.destroy()); stage.innerHTML = '';
+  imgs.forEach((img, i) => { if (i) pdf.addPage(); kind === 'deck' ? pdf.addImage(img, 'JPEG', 0, 0, 720, 405) : pdf.addImage(img, 'JPEG', 0, 0, 210, 297); });
   return pdf.output('blob');
+}
+async function makePptx() {
+  const f = form(), imgs = await renderImages('pptx');
+  $('msg').textContent = 'Armando el PowerPoint…';
+  const pp = new PptxGenJS();
+  pp.layout = 'LAYOUT_16x9'; // 10 x 5.625 in, igual proporción que las diapositivas 960x540
+  pp.author = f.asesor || 'Salva Energy'; pp.company = 'Salva Energy S.A.S.';
+  pp.title = 'Análisis conceptual · Sistema Solar Fotovoltaico · ' + f.cliente;
+  imgs.forEach(img => pp.addSlide().addImage({ data: img, x: 0, y: 0, w: 10, h: 5.625 }));
+  return pp.write({ outputType: 'blob', compression: true });
 }
 async function download(kind, btn) {
   const msg = $('msg');
-  const falta = (kind === 'deck' ? ['cliente','proyecto','ciudad'] : ['cliente','proyecto','ciudad','numero','para','nit','saludo']).filter(k => !$(k).value.trim());
+  const falta = (kind !== 'quote' ? ['cliente','proyecto','ciudad'] : ['cliente','proyecto','ciudad','numero','para','nit','saludo']).filter(k => !$(k).value.trim());
   if (falta.length) { msg.textContent = 'Completa antes de descargar: ' + falta.map(k => $(k).closest('label').firstChild.textContent.trim()).join(', ') + '.'; $(falta[0]).focus(); return; }
   btn.disabled = true;
   try {
     const f = form();
-    const name = kind === 'deck' ? `Analisis_Conceptual_Sistema_Solar_${slug(f.cliente)}.pdf` : `Cotizacion_${slug(f.numero)}_${slug(f.cliente)}.pdf`;
-    const blob = await makePdf(kind);
+    const name = kind === 'quote' ? `Cotizacion_${slug(f.numero)}_${slug(f.cliente)}.pdf` : `Analisis_Conceptual_Sistema_Solar_${slug(f.cliente)}.${kind === 'pptx' ? 'pptx' : 'pdf'}`;
+    const blob = kind === 'pptx' ? await makePptx() : await makePdf(kind);
     const dl = window.claude && await claude.use('downloads');
     if (dl) {
       msg.textContent = 'Confirma la descarga en la ventana que aparece.';
@@ -267,11 +283,12 @@ async function download(kind, btn) {
       const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
       msg.innerHTML = `Descargado: ${name}. Si no se descargó, <a href="${url}" download="${name}">haz clic aquí</a>.`;
     }
-  } catch (e) { msg.textContent = 'Error generando el PDF: ' + e.message; }
+  } catch (e) { msg.textContent = 'Error generando el archivo: ' + e.message; }
   btn.disabled = false;
 }
 $('dlDeck').onclick = e => download('deck', e.currentTarget);
 $('dlQuote').onclick = e => download('quote', e.currentTarget);
+$('dlPptx').onclick = e => download('pptx', e.currentTarget);
 kpis();
 $('fecha').value = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 document.fonts.ready.then(render);
